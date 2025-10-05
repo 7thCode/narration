@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Narration Editor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background: #252526;
+      padding: 10px 20px;
+      border-bottom: 1px solid #3c3c3c;
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      background: #0e639c;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background: #1177bb;
+    }
+
+    button:disabled {
+      background: #3c3c3c;
+      cursor: not-allowed;
+    }
+
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .editor-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    textarea {
+      flex: 1;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border: 1px solid #3c3c3c;
+      padding: 16px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+    }
+
+    .sidebar {
+      width: 350px;
+      background: #252526;
+      border-left: 1px solid #3c3c3c;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section h3 {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: #cccccc;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color: #cccccc;
+    }
+
+    select, textarea.instructions {
+      width: 100%;
+      background: #3c3c3c;
+      color: #d4d4d4;
+      border: 1px solid #555;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    textarea.instructions {
+      height: 120px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      resize: vertical;
+    }
+
+    .progress-container {
+      margin-top: 16px;
+    }
+
+    progress {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+    }
+
+    .progress-text {
+      font-size: 12px;
+      color: #888;
+      margin-top: 8px;
+    }
+
+    .convert-button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .cancel-button {
+      background: #c72e2e;
+      margin-top: 8px;
+    }
+
+    .cancel-button:hover {
+      background: #e03e3e;
+    }
+
+    .status {
+      margin-top: 16px;
+      padding: 12px;
+      background: #2d2d2d;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .status.success {
+      background: #1a3d1a;
+      color: #75ff75;
+    }
+
+    .status.error {
+      background: #3d1a1a;
+      color: #ff7575;
+    }
+
+    .audio-file {
+      margin-bottom: 12px;
+      padding: 12px;
+      background: #2d2d2d;
+      border-radius: 4px;
+    }
+
+    .audio-file-name {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    audio {
+      width: 100%;
+      height: 32px;
+    }
+  </style>
+</head>
+<body>
+  <!-- API Key設定モーダル -->
+  <div id="apiKeyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: #2d2d2d; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%;">
+      <h2 style="margin-top: 0; color: #fff;">OpenAI API Key設定</h2>
+      <p style="color: #ccc; font-size: 14px; margin-bottom: 20px;">
+        OpenAI API Keyを入力してください。API Keyは安全に保存されます。
+      </p>
+      <input type="password" id="apiKeyInput" placeholder="sk-..." style="width: 100%; padding: 12px; background: #3c3c3c; border: 1px solid #555; color: #fff; border-radius: 4px; font-size: 14px; margin-bottom: 20px;">
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button id="cancelApiKey" style="background: #555;">キャンセル</button>
+        <button id="saveApiKey">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="header">
+    <button id="openFile">ファイルを開く</button>
+    <button id="saveFile">ファイルを保存</button>
+    <button id="settingsButton">API Key設定</button>
+  </div>
+
+  <div class="container">
+    <div class="editor-panel">
+      <textarea id="editor" placeholder="テキストを入力するか、ファイルを開いてください..."></textarea>
+    </div>
+
+    <div class="sidebar">
+      <div class="section">
+        <h3>音声設定</h3>
+        <label>Voice</label>
+        <select id="voiceSelect">
+          <option value="alloy">Alloy</option>
+          <option value="echo">Echo</option>
+          <option value="fable">Fable</option>
+          <option value="onyx">Onyx</option>
+          <option value="nova">Nova</option>
+          <option value="shimmer">Shimmer</option>
+          <option value="coral">Coral</option>
+          <option value="sage" selected>Sage</option>
+        </select>
+
+        <label style="margin-top: 12px;">Instructions (音声のトーン・スタイル)</label>
+        <textarea id="instructions" class="instructions" placeholder="例: Friendly, clear, and reassuring tone..."></textarea>
+      </div>
+
+      <div class="section">
+        <button id="convertButton" class="convert-button">選択範囲を音声に変換</button>
+        <button id="cancelButton" class="convert-button cancel-button" style="display: none;">キャンセル</button>
+
+        <div id="progressContainer" class="progress-container" style="display: none;">
+          <progress id="progressBar" value="0" max="100"></progress>
+          <div id="progressText" class="progress-text"></div>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+      </div>
+
+      <div class="section" id="audioSection" style="display: none;">
+        <h3>音声再生</h3>
+        <div id="audioFiles"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
