@@ -5,7 +5,8 @@
       "Bash(npm run build:*)",
       "Bash(npm start)",
       "Bash(npm install:*)",
-      "Bash(npm run package:*)"
+      "Bash(npm run package:*)",
+      "mcp__serena__activate_project"
     ],
     "deny": [],
     "ask": []

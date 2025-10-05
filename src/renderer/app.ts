@@ -33,6 +33,8 @@ function initApp() {
   const editor = document.getElementById('editor') as HTMLTextAreaElement;
   const openFileBtn = document.getElementById('openFile') as HTMLButtonElement;
   const saveFileBtn = document.getElementById('saveFile') as HTMLButtonElement;
+  const kanjiButton = document.getElementById('kanjiButton') as HTMLButtonElement;
+  const furiganaButton = document.getElementById('furiganaButton') as HTMLButtonElement;
   const settingsButton = document.getElementById('settingsButton') as HTMLButtonElement;
   const apiKeyInput = document.getElementById('apiKeyInput') as HTMLInputElement;
   const saveApiKeyBtn = document.getElementById('saveApiKey') as HTMLButtonElement;
@@ -75,6 +77,23 @@ function initApp() {
     }
     hideApiKeyModal();
     apiKeyInput.value = '';
+  });
+
+  // ルビフィルター機能
+  kanjiButton.addEventListener('click', () => {
+    const text = editor.value;
+    const kanjiRegex = /<ruby><rb>(.*?)<\/rb>.*?<\/ruby>/g;
+    const filtered = text.replace(kanjiRegex, '$1');
+    editor.value = filtered;
+    showStatus('漢字のみ抽出しました', 'success');
+  });
+
+  furiganaButton.addEventListener('click', () => {
+    const text = editor.value;
+    const furiganaRegex = /<ruby><rb>.*?<\/rb><rp>（<\/rp><rt>(.*?)<\/rt><rp>）<\/rp><\/ruby>/g;
+    const filtered = text.replace(furiganaRegex, '$1');
+    editor.value = filtered;
+    showStatus('ふりがなのみ抽出しました', 'success');
   });
 
   // ファイル操作

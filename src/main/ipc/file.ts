@@ -8,7 +8,7 @@ ipcMain.handle('file:open', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],
     filters: [
-      { name: 'Text Files', extensions: ['txt'] },
+      { name: 'Text Files', extensions: ['txt', 'html'] },
       { name: 'All Files', extensions: ['*'] },
     ],
   });
@@ -30,7 +30,7 @@ ipcMain.handle('file:open', async () => {
 ipcMain.handle('file:save', async (_event, content: string) => {
   const result = await dialog.showSaveDialog({
     filters: [
-      { name: 'Text Files', extensions: ['txt'] },
+      { name: 'Text Files', extensions: ['txt', 'html'] },
       { name: 'All Files', extensions: ['*'] },
     ],
   });
