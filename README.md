@@ -21,9 +21,9 @@ OpenAI Text-to-Speech APIを統合したテキストエディタ
 npm install
 ```
 
-### 2. 環境変数の設定
+### 2. 環境変数の設定（開発時のみ）
 
-`.env.example`をコピーして`.env`を作成し、OpenAI API keyを設定：
+開発時は`.env`ファイルでAPI Keyを管理できます：
 
 ```bash
 cp .env.example .env
@@ -34,6 +34,8 @@ cp .env.example .env
 ```
 OPENAI_API_KEY=sk-your-api-key-here
 ```
+
+**注意**: パッケージ化されたアプリでは`.env`ファイルは使用されません。初回起動時にAPI Key入力ダイアログが表示され、`~/.narration-editor/settings.json`に保存されます。
 
 ### 3. 開発サーバー起動
 
@@ -92,11 +94,41 @@ npm start
 
 - 「ファイルを保存」ボタンで編集中のテキストを保存できます
 
-## ビルド
+## ビルド・パッケージング
+
+### 開発ビルド
 
 ```bash
 npm run build
+npm start
 ```
+
+### アプリケーションパッケージング
+
+Mac用DMGファイルを作成：
+
+```bash
+npm run package
+```
+
+生成物: `release/Narration Editor-1.0.0-universal.dmg`（Intel + Apple Silicon対応）
+
+**初回起動時の注意**:
+- コード署名なしのアプリケーションのため、Macのセキュリティ設定で警告が表示される場合があります
+- 「システム環境設定」→「セキュリティとプライバシー」から許可が必要な場合があります
+
+### API Key設定の仕組み
+
+アプリケーションは以下の優先順位でAPI Keyを読み込みます：
+
+1. **環境変数** `OPENAI_API_KEY`（開発時のみ）
+2. **設定ファイル** `~/.narration-editor/settings.json`（パッケージ版）
+
+パッケージ化されたアプリでは：
+- 初回起動時にAPI Key入力ダイアログが自動表示
+- 入力されたAPI Keyは`~/.narration-editor/settings.json`に保存
+- 次回起動時は自動的に読み込まれます
+- ヘッダーの「API Key設定」ボタンからいつでも再設定可能
 
 ## プロジェクト構造
 
