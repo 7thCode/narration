@@ -37,6 +37,7 @@
     "productName": "Narration Editor",
     "mac": {
       "category": "public.app-category.productivity",
+      "icon": "build-resources/icon.png",
       "target": [
         {
           "target": "dmg",
@@ -51,7 +52,8 @@
       "package.json"
     ],
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build-resources"
     }
   }
 }

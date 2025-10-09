@@ -6,7 +6,10 @@
       "Bash(npm start)",
       "Bash(npm install:*)",
       "Bash(npm run package:*)",
-      "mcp__serena__activate_project"
+      "mcp__serena__activate_project",
+      "mcp__serena__list_dir",
+      "Read(//Users/oda/Downloads/**)",
+      "Bash(sips:*)"
     ],
     "deny": [],
     "ask": []
