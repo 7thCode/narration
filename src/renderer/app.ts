@@ -35,6 +35,7 @@ function initApp() {
   const saveFileBtn = document.getElementById('saveFile') as HTMLButtonElement;
   const kanjiButton = document.getElementById('kanjiButton') as HTMLButtonElement;
   const furiganaButton = document.getElementById('furiganaButton') as HTMLButtonElement;
+  const brConvertButton = document.getElementById('brConvertButton') as HTMLButtonElement;
   const settingsButton = document.getElementById('settingsButton') as HTMLButtonElement;
   const apiKeyInput = document.getElementById('apiKeyInput') as HTMLInputElement;
   const saveApiKeyBtn = document.getElementById('saveApiKey') as HTMLButtonElement;
@@ -94,6 +95,14 @@ function initApp() {
     const filtered = text.replace(furiganaRegex, '$1');
     editor.value = filtered;
     showStatus('ふりがなのみ抽出しました', 'success');
+  });
+
+  // <br />を改行に変換
+  brConvertButton.addEventListener('click', () => {
+    const text = editor.value;
+    const converted = text.replace(/<br\s*\/?>/gi, '\n');
+    editor.value = converted;
+    showStatus('<br />を改行に変換しました', 'success');
   });
 
   // ファイル操作

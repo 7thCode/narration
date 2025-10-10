@@ -9,7 +9,8 @@
       "mcp__serena__activate_project",
       "mcp__serena__list_dir",
       "Read(//Users/oda/Downloads/**)",
-      "Bash(sips:*)"
+      "Bash(sips:*)",
+      "mcp__serena__replace_regex"
     ],
     "deny": [],
     "ask": []
