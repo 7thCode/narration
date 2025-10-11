@@ -10,7 +10,16 @@
       "mcp__serena__list_dir",
       "Read(//Users/oda/Downloads/**)",
       "Bash(sips:*)",
-      "mcp__serena__replace_regex"
+      "mcp__serena__replace_regex",
+      "mcp__serena__find_file",
+      "mcp__serena__search_for_pattern",
+      "Bash(npm run build:main:*)",
+      "Bash(go mod:*)",
+      "Bash(go build:*)",
+      "Bash(src/go/kanji_converter)",
+      "Bash(./kanji_converter)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/build-go.sh:*)"
     ],
     "deny": [],
     "ask": []

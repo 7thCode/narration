@@ -52,3 +52,4 @@ app.on('window-all-closed', () => {
 import './ipc/file.js';
 import './ipc/tts.js';
 import './ipc/settings.js';
+import './ipc/go-converter.js';

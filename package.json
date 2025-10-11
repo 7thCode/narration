@@ -5,7 +5,8 @@
   "main": "dist/main/index.js",
   "type": "module",
   "scripts": {
-    "build": "npm run build:main && npm run build:preload && npm run build:renderer && npm run copy:html",
+    "build": "npm run build:go && npm run build:main && npm run build:preload && npm run build:renderer && npm run copy:html",
+    "build:go": "./scripts/build-go.sh",
     "build:main": "tsc -p tsconfig.main.json",
     "build:preload": "tsc -p tsconfig.preload.json",
     "build:renderer": "tsc -p tsconfig.json",
@@ -50,6 +51,13 @@
     "files": [
       "dist/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/binaries",
+        "to": "binaries",
+        "filter": ["kanji_converter"]
+      }
     ],
     "directories": {
       "output": "release",

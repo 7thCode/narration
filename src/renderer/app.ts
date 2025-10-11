@@ -10,19 +10,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   // API Key確認
   const hasApiKey = await (window as any).electron.settings.hasApiKey();
   if (!hasApiKey) {
-    showApiKeyModal();
+    showSettingsModal();
   }
 
   initApp();
 });
 
-function showApiKeyModal() {
-  const modal = document.getElementById('apiKeyModal') as HTMLDivElement;
+function showSettingsModal() {
+  const modal = document.getElementById('settingsModal') as HTMLDivElement;
   modal.style.display = 'flex';
 }
 
-function hideApiKeyModal() {
-  const modal = document.getElementById('apiKeyModal') as HTMLDivElement;
+function hideSettingsModal() {
+  const modal = document.getElementById('settingsModal') as HTMLDivElement;
   modal.style.display = 'none';
 }
 
@@ -36,10 +36,12 @@ function initApp() {
   const kanjiButton = document.getElementById('kanjiButton') as HTMLButtonElement;
   const furiganaButton = document.getElementById('furiganaButton') as HTMLButtonElement;
   const brConvertButton = document.getElementById('brConvertButton') as HTMLButtonElement;
+  const rubyConvertButton = document.getElementById('rubyConvertButton') as HTMLButtonElement;
+  const hiraganaButton = document.getElementById('hiraganaButton') as HTMLButtonElement;
   const settingsButton = document.getElementById('settingsButton') as HTMLButtonElement;
   const apiKeyInput = document.getElementById('apiKeyInput') as HTMLInputElement;
-  const saveApiKeyBtn = document.getElementById('saveApiKey') as HTMLButtonElement;
-  const cancelApiKeyBtn = document.getElementById('cancelApiKey') as HTMLButtonElement;
+  const saveSettingsBtn = document.getElementById('saveSettings') as HTMLButtonElement;
+  const cancelSettingsBtn = document.getElementById('cancelSettings') as HTMLButtonElement;
   const voiceSelect = document.getElementById('voiceSelect') as HTMLSelectElement;
   const instructions = document.getElementById('instructions') as HTMLTextAreaElement;
   const convertButton = document.getElementById('convertButton') as HTMLButtonElement;
@@ -53,31 +55,34 @@ function initApp() {
 
   console.log('Elements:', { editor, openFileBtn, saveFileBtn });
 
-  // API Key設定
-  settingsButton.addEventListener('click', () => {
-    showApiKeyModal();
+  // 設定モーダル
+  settingsButton.addEventListener('click', async () => {
+    // 現在の設定を読み込んで表示
+    const apiKey = await (window as any).electron.settings.getApiKey();
+    apiKeyInput.value = apiKey || '';
+    showSettingsModal();
   });
 
-  saveApiKeyBtn.addEventListener('click', async () => {
+  // 設定保存
+  saveSettingsBtn.addEventListener('click', async () => {
     const apiKey = apiKeyInput.value.trim();
-    if (!apiKey) {
-      alert('API Keyを入力してください');
-      return;
+
+    if (apiKey) {
+      await (window as any).electron.settings.setApiKey(apiKey);
     }
-    await (window as any).electron.settings.setApiKey(apiKey);
-    hideApiKeyModal();
-    apiKeyInput.value = '';
-    showStatus('API Keyを保存しました', 'success');
+
+    hideSettingsModal();
+    showStatus('設定を保存しました', 'success');
   });
 
-  cancelApiKeyBtn.addEventListener('click', async () => {
+  // 設定キャンセル
+  cancelSettingsBtn.addEventListener('click', async () => {
     const hasApiKey = await (window as any).electron.settings.hasApiKey();
     if (!hasApiKey) {
       alert('API Keyが設定されていません。アプリを使用するにはAPI Keyが必要です。');
       return;
     }
-    hideApiKeyModal();
-    apiKeyInput.value = '';
+    hideSettingsModal();
   });
 
   // ルビフィルター機能
@@ -103,6 +108,52 @@ function initApp() {
     const converted = text.replace(/<br\s*\/?>/gi, '\n');
     editor.value = converted;
     showStatus('<br />を改行に変換しました', 'success');
+  });
+
+  // ルビタグを「漢字（ふりがな）」形式に変換
+  rubyConvertButton.addEventListener('click', () => {
+    const text = editor.value;
+    const rubyRegex = /<ruby><rb>(.*?)<\/rb><rp>（<\/rp><rt>(.*?)<\/rt><rp>）<\/rp><\/ruby>/g;
+    const converted = text.replace(rubyRegex, '$1（$2）');
+    editor.value = converted;
+    showStatus('ルビタグを変換しました', 'success');
+  });
+
+  // ひらがな変換（Go + Kagome）
+  hiraganaButton.addEventListener('click', async () => {
+    const selectedText = editor.value.substring(
+      editor.selectionStart,
+      editor.selectionEnd
+    );
+    const textToConvert = selectedText || editor.value;
+
+    if (!textToConvert) {
+      showStatus('変換するテキストがありません', 'error');
+      return;
+    }
+
+    showStatus('ひらがなに変換中...', 'success');
+
+    try {
+      const result = await (window as any).electron.go.convertToHiragana(textToConvert);
+
+      if (result.success && result.output) {
+        if (selectedText) {
+          // 選択範囲のみ置換
+          const before = editor.value.substring(0, editor.selectionStart);
+          const after = editor.value.substring(editor.selectionEnd);
+          editor.value = before + result.output + after;
+        } else {
+          // 全体を置換
+          editor.value = result.output;
+        }
+        showStatus('✅ ひらがな変換完了', 'success');
+      } else {
+        showStatus(`❌ 変換エラー: ${result.error || 'Unknown error'}`, 'error');
+      }
+    } catch (error: any) {
+      showStatus(`❌ 変換エラー: ${error.message}`, 'error');
+    }
   });
 
   // ファイル操作

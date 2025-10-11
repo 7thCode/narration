@@ -24,5 +24,8 @@ contextBridge.exposeInMainWorld('electron', {
     getApiKey: () => ipcRenderer.invoke('settings:getApiKey'),
     setApiKey: (apiKey: string) => ipcRenderer.invoke('settings:setApiKey', apiKey),
   },
+  go: {
+    convertToHiragana: (text: string) => ipcRenderer.invoke('go:convertToHiragana', text),
+  },
 });
 
