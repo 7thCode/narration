@@ -333,10 +333,84 @@ OPENAI_API_KEY=sk-...
    - **原因**: `.env`ファイルがパッケージに含まれない
    - **解決**: 設定ファイルシステムとAPI Key入力UIを実装
 
+### Phase 9: ひらがな変換機能 (Go + Kagome 実装)
+
+**課題**: Python + MeCab + unidic による変換が外部依存過多
+
+**解決策**: Go + Kagome への完全置き換え
+
+**実装内容**
+1. **Go プログラム作成** (`src/go/kanji_converter.go`)
+   - Kagome (純粋Go形態素解析エンジン)
+   - IPA辞書内蔵
+   - カタカナ→ひらがな変換機能
+   - 標準入出力インターフェース
+
+2. **ビルドシステム**
+   - `scripts/build-go.sh`: Universal Binary 自動生成
+   - Intel (amd64) + Apple Silicon (arm64) 対応
+   - バイナリサイズ: 29MB (辞書込み、外部依存なし)
+   - `npm run build:go` で自動ビルド
+
+3. **Electron 統合**
+   - `src/main/ipc/go-converter.ts`: Go バイナリ実行ハンドラ
+   - `go:convertToHiragana` IPC チャンネル
+   - 開発環境 / パッケージ後のパス自動解決
+   - Python 関連コード完全削除
+
+4. **パッケージング**
+   - `extraResources` で Go バイナリをバンドル
+   - 配布時に `binaries/kanji_converter` が自動的に含まれる
+
+**アーキテクチャ**
+```
+Renderer (UI)
+    ↓ IPC (go:convertToHiragana)
+Main Process
+    ↓ spawn
+Go Binary (29MB Universal, 辞書込み)
+    ↓ Kagome (IPA辞書)
+ひらがな変換結果
+```
+
+**利点**
+- ✅ 外部依存ゼロ（Python/MeCab/unidic インストール不要）
+- ✅ 単一バイナリ配布（辞書込み）
+- ✅ ユーザー設定不要（Python path 設定削除）
+- ✅ クロスプラットフォーム対応可能
+- ✅ 高速・軽量
+
+**ファイル構成**
+```
+src/
+├── go/
+│   ├── kanji_converter.go    # Go変換プログラム
+│   ├── go.mod                 # 依存関係
+│   └── go.sum
+├── main/
+│   └── ipc/
+│       ├── go-converter.ts    # Goバイナリ実行ハンドラ
+│       └── settings.ts        # 簡素化（pythonPath削除）
+scripts/
+└── build-go.sh                # Universal Binary ビルド
+dist/
+└── binaries/
+    └── kanji_converter        # 29MB Universal Binary
+```
+
+## 重要な注意事項
+
+### cache.go について
+- **このプロジェクトには cache.go は存在しません**
+- 過去の会話で言及された可能性がありますが、このプロジェクトとは無関係です
+- 今後 cache.go について質問された場合は、このプロジェクトには存在しないことを明確に伝えてください
+
 ## まとめ
 
 Electronアプリケーションの開発において、ES ModuleとCommonJSの混在、プロセス間通信、パッケージング時の環境変数管理など、多くの技術的課題に直面したが、すべて解決し、完全に動作するアプリケーションを完成させた。
 
 OpenAI TTS APIの統合により、テキストから高品質な音声を生成できるようになり、1024文字の自動分割、プログレス表示、キャンセル機能など、UXにも配慮した実装となった。
+
+さらに、ひらがな変換機能を Go + Kagome で実装することにより、外部依存を完全に排除し、シンプルで高速な配布が可能になった。
 
 今後は使用量トラッキングやUI/UXの更なる改善を進める予定。
