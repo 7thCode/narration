@@ -38,6 +38,8 @@ function initApp() {
   const brConvertButton = document.getElementById('brConvertButton') as HTMLButtonElement;
   const rubyConvertButton = document.getElementById('rubyConvertButton') as HTMLButtonElement;
   const hiraganaButton = document.getElementById('hiraganaButton') as HTMLButtonElement;
+  const mainTextButton = document.getElementById('mainTextButton') as HTMLButtonElement;
+  const playButton = document.getElementById('playButton') as HTMLButtonElement;
   const settingsButton = document.getElementById('settingsButton') as HTMLButtonElement;
   const apiKeyInput = document.getElementById('apiKeyInput') as HTMLInputElement;
   const saveSettingsBtn = document.getElementById('saveSettings') as HTMLButtonElement;
@@ -153,6 +155,89 @@ function initApp() {
       }
     } catch (error: any) {
       showStatus(`❌ 変換エラー: ${error.message}`, 'error');
+    }
+  });
+
+  // main_text抽出
+  mainTextButton.addEventListener('click', () => {
+    const text = editor.value;
+    
+    try {
+      // DOMParserでHTMLをパース
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'text/html');
+      
+      // <div class="main_text">を取得
+      const mainTextDiv = doc.querySelector('div.main_text');
+      
+      if (mainTextDiv) {
+        // innerHTML（内側のみ）を抽出
+        editor.value = mainTextDiv.innerHTML;
+        showStatus('✅ <div class="main_text">の内容を抽出しました', 'success');
+      } else {
+        showStatus('❌ <div class="main_text">が見つかりませんでした', 'error');
+      }
+    } catch (error: any) {
+      showStatus(`❌ エラー: ${error.message}`, 'error');
+    }
+  });
+
+  // 音声再生（選択範囲）
+  let currentAudio: HTMLAudioElement | null = null;
+  
+  playButton.addEventListener('click', async () => {
+    const selectedText = editor.value.substring(
+      editor.selectionStart,
+      editor.selectionEnd
+    );
+
+    if (!selectedText) {
+      showStatus('❌ テキストを選択してください', 'error');
+      return;
+    }
+
+    // 既存の音声を停止
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+
+    showStatus('🎵 音声を生成中...', 'success');
+    playButton.disabled = true;
+
+    try {
+      // 1チャンクのみ生成（再生用）
+      const result = await (window as any).electron.tts.convert({
+        text: selectedText,
+        voice: voiceSelect.value,
+        instructions: instructions.value,
+        startLine: 1,
+      });
+
+      if (result.success && result.files.length > 0) {
+        // 最初のファイルを再生
+        const audioFile = result.files[0];
+        currentAudio = new Audio(audioFile);
+        
+        currentAudio.onended = () => {
+          showStatus('✅ 再生完了', 'success');
+          playButton.disabled = false;
+        };
+
+        currentAudio.onerror = () => {
+          showStatus('❌ 再生エラー', 'error');
+          playButton.disabled = false;
+        };
+
+        await currentAudio.play();
+        showStatus('🎵 再生中...', 'success');
+      } else {
+        showStatus(`❌ エラー: ${result.error}`, 'error');
+        playButton.disabled = false;
+      }
+    } catch (error: any) {
+      showStatus(`❌ エラー: ${error.message}`, 'error');
+      playButton.disabled = false;
     }
   });
 
