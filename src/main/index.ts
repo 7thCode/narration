@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { createApplicationMenu } from './menu.js';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
@@ -26,6 +27,9 @@ function createWindow() {
 
   // HTMLファイルを直接読み込み
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+
+  // アプリケーションメニューを作成
+  createApplicationMenu(mainWindow);
 
   mainWindow.on('closed', () => {
     mainWindow = null;

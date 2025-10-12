@@ -3,6 +3,11 @@ import { contextBridge, ipcRenderer } from 'electron';
 console.log('Preload script loaded');
 
 contextBridge.exposeInMainWorld('electron', {
+  ipcRenderer: {
+    on: (channel: string, callback: (...args: any[]) => void) => {
+      ipcRenderer.on(channel, (_event, ...args) => callback(...args));
+    },
+  },
   file: {
     open: () => ipcRenderer.invoke('file:open'),
     save: (content: string) => ipcRenderer.invoke('file:save', content),

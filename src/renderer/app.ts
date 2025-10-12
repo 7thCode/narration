@@ -14,6 +14,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initApp();
+
+  // メニューイベントリスナー（initAppの外で定義）
+  (window as any).electron.ipcRenderer.on('menu:file:open', () => {
+    const openFileBtn = document.getElementById('openFile') as HTMLButtonElement;
+    openFileBtn?.click();
+  });
+
+  (window as any).electron.ipcRenderer.on('menu:file:save', () => {
+    const saveFileBtn = document.getElementById('saveFile') as HTMLButtonElement;
+    saveFileBtn?.click();
+  });
+
+  (window as any).electron.ipcRenderer.on('menu:tools:maintext', () => {
+    const mainTextButton = document.getElementById('mainTextButton') as HTMLButtonElement;
+    mainTextButton?.click();
+  });
+
+  (window as any).electron.ipcRenderer.on('menu:tools:kanji', () => {
+    const kanjiButton = document.getElementById('kanjiButton') as HTMLButtonElement;
+    kanjiButton?.click();
+  });
+
+  (window as any).electron.ipcRenderer.on('menu:tools:furigana', () => {
+    const furiganaButton = document.getElementById('furiganaButton') as HTMLButtonElement;
+    furiganaButton?.click();
+  });
+
+  (window as any).electron.ipcRenderer.on('menu:tools:br', () => {
+    const brConvertButton = document.getElementById('brConvertButton') as HTMLButtonElement;
+    brConvertButton?.click();
+  });
+
+  (window as any).electron.ipcRenderer.on('menu:tools:ruby', () => {
+    const rubyConvertButton = document.getElementById('rubyConvertButton') as HTMLButtonElement;
+    rubyConvertButton?.click();
+  });
+
+  (window as any).electron.ipcRenderer.on('menu:tools:hiragana', () => {
+    const hiraganaButton = document.getElementById('hiraganaButton') as HTMLButtonElement;
+    hiraganaButton?.click();
+  });
 });
 
 function showSettingsModal() {
@@ -361,4 +402,5 @@ function initApp() {
       audioFiles.appendChild(container);
     });
   }
+
 }
