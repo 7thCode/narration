@@ -26,6 +26,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     saveFileBtn?.click();
   });
 
+  (window as any).electron.ipcRenderer.on('menu:file:saveas', () => {
+    const saveAsFileBtn = document.getElementById('saveAsFile') as HTMLButtonElement;
+    saveAsFileBtn?.click();
+  });
+
   (window as any).electron.ipcRenderer.on('menu:tools:maintext', () => {
     const mainTextButton = document.getElementById('mainTextButton') as HTMLButtonElement;
     mainTextButton?.click();
@@ -118,6 +123,7 @@ function initApp() {
   const editor = document.getElementById('editor') as HTMLTextAreaElement;
   const openFileBtn = document.getElementById('openFile') as HTMLButtonElement;
   const saveFileBtn = document.getElementById('saveFile') as HTMLButtonElement;
+  const saveAsFileBtn = document.getElementById('saveAsFile') as HTMLButtonElement;
   const kanjiButton = document.getElementById('kanjiButton') as HTMLButtonElement;
   const furiganaButton = document.getElementById('furiganaButton') as HTMLButtonElement;
   const brConvertButton = document.getElementById('brConvertButton') as HTMLButtonElement;
@@ -588,6 +594,16 @@ function initApp() {
   saveFileBtn.addEventListener('click', async () => {
     console.log('Save file clicked');
     const result = await (window as any).electron.file.save(editor.value);
+    if (result.success) {
+      showStatus(`ファイルを保存しました: ${result.filePath}`, 'success');
+    } else if (result.error !== 'Cancelled') {
+      showStatus(`エラー: ${result.error}`, 'error');
+    }
+  });
+
+  saveAsFileBtn.addEventListener('click', async () => {
+    console.log('Save As file clicked');
+    const result = await (window as any).electron.file.saveAs(editor.value);
     if (result.success) {
       showStatus(`ファイルを保存しました: ${result.filePath}`, 'success');
     } else if (result.error !== 'Cancelled') {

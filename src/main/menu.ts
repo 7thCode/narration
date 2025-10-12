@@ -33,10 +33,17 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
           }
         },
         {
-          label: 'Save...',
+          label: 'Save',
           accelerator: 'CmdOrCtrl+S',
           click: () => {
             mainWindow.webContents.send('menu:file:save');
+          }
+        },
+        {
+          label: 'Save As...',
+          accelerator: 'Shift+CmdOrCtrl+S',
+          click: () => {
+            mainWindow.webContents.send('menu:file:saveas');
           }
         },
         { type: 'separator' as const },

@@ -28,6 +28,25 @@ ipcMain.handle('file:open', async () => {
 });
 
 ipcMain.handle('file:save', async (_event, content: string) => {
+  // 上書き保存: currentFilePathがあればそれを使用
+  if (currentFilePath) {
+    try {
+      writeFileSync(currentFilePath, content, 'utf-8');
+      return { success: true, filePath: currentFilePath };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+  
+  // currentFilePathがなければSave As扱い
+  return handleSaveAs(content);
+});
+
+ipcMain.handle('file:saveAs', async (_event, content: string) => {
+  return handleSaveAs(content);
+});
+
+async function handleSaveAs(content: string) {
   const result = await dialog.showSaveDialog({
     filters: [
       { name: 'Text Files', extensions: ['txt', 'html'] },
@@ -40,9 +59,12 @@ ipcMain.handle('file:save', async (_event, content: string) => {
   }
 
   try {
+    currentFilePath = result.filePath; // 保存後にcurrentFilePathを更新
     writeFileSync(result.filePath, content, 'utf-8');
     return { success: true, filePath: result.filePath };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
-});
+}
+
+
