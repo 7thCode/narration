@@ -19,7 +19,8 @@
       "Bash(src/go/kanji_converter)",
       "Bash(./kanji_converter)",
       "Bash(chmod:*)",
-      "Bash(./scripts/build-go.sh:*)"
+      "Bash(./scripts/build-go.sh:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

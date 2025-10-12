@@ -83,6 +83,14 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
           label: 'Select All',
           accelerator: 'CmdOrCtrl+A',
           role: 'selectAll' as const
+        },
+        { type: 'separator' as const },
+        {
+          label: 'Find and Replace...',
+          accelerator: 'CmdOrCtrl+F',
+          click: () => {
+            mainWindow.webContents.send('menu:edit:find');
+          }
         }
       ]
     },

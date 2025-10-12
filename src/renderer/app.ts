@@ -55,6 +55,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hiraganaButton = document.getElementById('hiraganaButton') as HTMLButtonElement;
     hiraganaButton?.click();
   });
+
+  (window as any).electron.ipcRenderer.on('menu:edit:find', () => {
+    showSearchReplaceModal();
+  });
 });
 
 function showSettingsModal() {
@@ -65,6 +69,46 @@ function showSettingsModal() {
 function hideSettingsModal() {
   const modal = document.getElementById('settingsModal') as HTMLDivElement;
   modal.style.display = 'none';
+}
+
+function showSearchReplaceModal() {
+  const modal = document.getElementById('searchReplaceModal') as HTMLDivElement;
+  modal.style.display = 'flex';
+  // 検索入力にフォーカス
+  const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+  searchInput?.focus();
+}
+
+function hideSearchReplaceModal() {
+  const modal = document.getElementById('searchReplaceModal') as HTMLDivElement;
+  modal.style.display = 'none';
+}
+
+// 検索機能の状態管理
+let lastSearchQuery = '';
+let lastSearchIndex = -1;
+
+// セッション使用量トラッキング
+let sessionTotalChars = 0;
+
+function updateUsageStats(charCount: number, model: string = 'tts-1') {
+  sessionTotalChars += charCount;
+  
+  // モデル別料金 (per 1K chars)
+  const rates = {
+    'tts-1': 0.015,
+    'tts-1-hd': 0.030,
+  };
+  
+  const rate = rates[model as keyof typeof rates] || rates['tts-1'];
+  const cost = (sessionTotalChars / 1000) * rate;
+  
+  // UI更新
+  const sessionCharsEl = document.getElementById('sessionChars');
+  const sessionCostEl = document.getElementById('sessionCost');
+  
+  if (sessionCharsEl) sessionCharsEl.textContent = sessionTotalChars.toLocaleString();
+  if (sessionCostEl) sessionCostEl.textContent = `$${cost.toFixed(4)}`;
 }
 
 function initApp() {
@@ -126,6 +170,248 @@ function initApp() {
       return;
     }
     hideSettingsModal();
+  });
+
+  // 検索・置換モーダルの要素取得
+  const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+  const replaceInput = document.getElementById('replaceInput') as HTMLInputElement;
+  const caseSensitiveCheck = document.getElementById('caseSensitiveCheck') as HTMLInputElement;
+  const regexCheck = document.getElementById('regexCheck') as HTMLInputElement;
+  const findNextButton = document.getElementById('findNextButton') as HTMLButtonElement;
+  const replaceButton = document.getElementById('replaceButton') as HTMLButtonElement;
+  const replaceAllButton = document.getElementById('replaceAllButton') as HTMLButtonElement;
+  const closeSearchButton = document.getElementById('closeSearchButton') as HTMLButtonElement;
+  const searchStatus = document.getElementById('searchStatus') as HTMLDivElement;
+
+  // 検索ステータス表示
+  function showSearchStatus(message: string, isError: boolean = false) {
+    searchStatus.textContent = message;
+    searchStatus.style.display = 'block';
+    searchStatus.style.background = isError ? '#3d1a1a' : '#1a3d1a';
+    searchStatus.style.color = isError ? '#ff7575' : '#75ff75';
+    
+    setTimeout(() => {
+      searchStatus.style.display = 'none';
+    }, 3000);
+  }
+
+  // 検索実行
+  function findNext() {
+    const query = searchInput.value;
+    if (!query) {
+      showSearchStatus('検索文字列を入力してください', true);
+      return;
+    }
+
+    const text = editor.value;
+    const caseSensitive = caseSensitiveCheck.checked;
+    const useRegex = regexCheck.checked;
+
+    // 検索クエリが変わった場合はリセット
+    if (query !== lastSearchQuery) {
+      lastSearchQuery = query;
+      lastSearchIndex = -1;
+    }
+
+    let foundIndex = -1;
+
+    try {
+      if (useRegex) {
+        const flags = caseSensitive ? 'g' : 'gi';
+        const regex = new RegExp(query, flags);
+        const matches = [...text.matchAll(regex)];
+        
+        if (matches.length === 0) {
+          showSearchStatus('見つかりませんでした', true);
+          lastSearchIndex = -1;
+          return;
+        }
+
+        // 次のマッチを探す
+        const currentPos = editor.selectionEnd;
+        let nextMatch = matches.find(m => m.index !== undefined && m.index > currentPos);
+        
+        if (!nextMatch) {
+          // 最初に戻る
+          nextMatch = matches[0];
+          showSearchStatus(`最初に戻りました (${matches.length}件)`, false);
+        } else {
+          showSearchStatus(`${matches.length}件中`, false);
+        }
+
+        if (nextMatch && nextMatch.index !== undefined) {
+          foundIndex = nextMatch.index;
+          editor.focus();
+          editor.setSelectionRange(foundIndex, foundIndex + nextMatch[0].length);
+          lastSearchIndex = foundIndex;
+        }
+      } else {
+        // 通常検索
+        const searchText = caseSensitive ? text : text.toLowerCase();
+        const searchQuery = caseSensitive ? query : query.toLowerCase();
+        
+        foundIndex = searchText.indexOf(searchQuery, lastSearchIndex + 1);
+        
+        if (foundIndex === -1 && lastSearchIndex !== -1) {
+          // 最初から再検索
+          foundIndex = searchText.indexOf(searchQuery, 0);
+          if (foundIndex !== -1) {
+            showSearchStatus('最初に戻りました', false);
+          }
+        }
+
+        if (foundIndex !== -1) {
+          editor.focus();
+          editor.setSelectionRange(foundIndex, foundIndex + query.length);
+          lastSearchIndex = foundIndex;
+          showSearchStatus('見つかりました', false);
+        } else {
+          showSearchStatus('見つかりませんでした', true);
+          lastSearchIndex = -1;
+        }
+      }
+    } catch (error: any) {
+      showSearchStatus(`正規表現エラー: ${error.message}`, true);
+    }
+  }
+
+  // 置換実行
+  function replaceOne() {
+    const query = searchInput.value;
+    const replacement = replaceInput.value;
+    
+    if (!query) {
+      showSearchStatus('検索文字列を入力してください', true);
+      return;
+    }
+
+    const selStart = editor.selectionStart;
+    const selEnd = editor.selectionEnd;
+    const selectedText = editor.value.substring(selStart, selEnd);
+
+    const caseSensitive = caseSensitiveCheck.checked;
+    const useRegex = regexCheck.checked;
+
+    let matches = false;
+
+    try {
+      if (useRegex) {
+        const flags = caseSensitive ? '' : 'i';
+        const regex = new RegExp(query, flags);
+        matches = regex.test(selectedText);
+      } else {
+        const compareSelected = caseSensitive ? selectedText : selectedText.toLowerCase();
+        const compareQuery = caseSensitive ? query : query.toLowerCase();
+        matches = compareSelected === compareQuery;
+      }
+
+      if (matches) {
+        // 選択範囲を置換
+        const before = editor.value.substring(0, selStart);
+        const after = editor.value.substring(selEnd);
+        
+        let replacedText = replacement;
+        if (useRegex) {
+          const flags = caseSensitive ? '' : 'i';
+          const regex = new RegExp(query, flags);
+          replacedText = selectedText.replace(regex, replacement);
+        }
+        
+        editor.value = before + replacedText + after;
+        editor.setSelectionRange(selStart, selStart + replacedText.length);
+        showSearchStatus('置換しました', false);
+        
+        // 次を検索
+        lastSearchIndex = selStart + replacedText.length - 1;
+        setTimeout(() => findNext(), 100);
+      } else {
+        // 一致していない場合は次を検索
+        findNext();
+      }
+    } catch (error: any) {
+      showSearchStatus(`正規表現エラー: ${error.message}`, true);
+    }
+  }
+
+  // すべて置換
+  function replaceAll() {
+    const query = searchInput.value;
+    const replacement = replaceInput.value;
+    
+    if (!query) {
+      showSearchStatus('検索文字列を入力してください', true);
+      return;
+    }
+
+    const caseSensitive = caseSensitiveCheck.checked;
+    const useRegex = regexCheck.checked;
+
+    try {
+      let newText = editor.value;
+      let count = 0;
+
+      if (useRegex) {
+        const flags = caseSensitive ? 'g' : 'gi';
+        const regex = new RegExp(query, flags);
+        const matches = newText.match(regex);
+        count = matches ? matches.length : 0;
+        newText = newText.replace(regex, replacement);
+      } else {
+        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(
+          escapedQuery,
+          caseSensitive ? 'g' : 'gi'
+        );
+        const matches = newText.match(regex);
+        count = matches ? matches.length : 0;
+        newText = newText.replace(regex, replacement);
+      }
+
+      if (count > 0) {
+        editor.value = newText;
+        showSearchStatus(`${count}件を置換しました`, false);
+        lastSearchIndex = -1;
+        lastSearchQuery = '';
+      } else {
+        showSearchStatus('見つかりませんでした', true);
+      }
+    } catch (error: any) {
+      showSearchStatus(`正規表現エラー: ${error.message}`, true);
+    }
+  }
+
+  // イベントリスナー
+  findNextButton.addEventListener('click', findNext);
+  replaceButton.addEventListener('click', replaceOne);
+  replaceAllButton.addEventListener('click', replaceAll);
+  closeSearchButton.addEventListener('click', hideSearchReplaceModal);
+
+  // Enterキーで検索
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      findNext();
+    }
+  });
+
+  // Shift+Enterで置換
+  replaceInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (e.shiftKey) {
+        replaceAll();
+      } else {
+        replaceOne();
+      }
+    }
+  });
+
+  // Escapeキーで閉じる
+  document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('searchReplaceModal') as HTMLDivElement;
+    if (e.key === 'Escape' && modal.style.display === 'flex') {
+      hideSearchReplaceModal();
+    }
   });
 
   // ルビフィルター機能
@@ -247,6 +533,9 @@ function initApp() {
     playButton.disabled = true;
 
     try {
+      // 使用量をカウント
+      const charCount = selectedText.length;
+      
       // 1チャンクのみ生成（再生用）
       const result = await (window as any).electron.tts.convert({
         text: selectedText,
@@ -256,6 +545,8 @@ function initApp() {
       });
 
       if (result.success && result.files.length > 0) {
+        // 使用量を更新
+        updateUsageStats(charCount, 'tts-1');
         // 最初のファイルを再生
         const audioFile = result.files[0];
         currentAudio = new Audio(audioFile);
@@ -338,6 +629,8 @@ function initApp() {
       });
 
     if (result.success) {
+      // 使用量を更新
+      updateUsageStats(selectedText.length, 'tts-1');
       showStatus(
         `✅ 変換完了\n生成されたファイル:\n${result.files.join('\n')}`,
         'success'
