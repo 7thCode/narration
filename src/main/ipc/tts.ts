@@ -6,6 +6,7 @@ import { homedir } from 'os';
 import { splitText } from '../utils/textChunker.js';
 import { currentFilePath } from './file.js';
 import { getApiKey } from './settings.js';
+import { getTempDir } from './file-manager.js';
 
 let abortController: AbortController | null = null;
 
@@ -33,8 +34,8 @@ ipcMain.handle('tts:convert', async (event, params: TTSParams) => {
     const chunks = splitText(params.text, 1024);
     const generatedFiles: string[] = [];
 
-    // 保存先ディレクトリの決定
-    const baseDir = join(homedir(), 'Downloads', 'narration');
+    // 保存先ディレクトリの決定（一時ディレクトリ）
+    const baseDir = getTempDir();
 
     // ファイル名のベース部分を決定
     let fileBaseName = 'untitled';
@@ -44,11 +45,8 @@ ipcMain.handle('tts:convert', async (event, params: TTSParams) => {
       fileBaseName = fileName.replace(/\.[^/.]+$/, ''); // 拡張子を削除
     }
 
-    // ディレクトリ作成
-    mkdirSync(baseDir, { recursive: true });
-
     console.log(`テキストを${chunks.length}個のチャンクに分割しました`);
-    console.log(`保存先: ${baseDir}`);
+    console.log(`一時保存先: ${baseDir}`);
 
     for (let i = 0; i < chunks.length; i++) {
       // キャンセルチェック

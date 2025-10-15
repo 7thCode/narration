@@ -179,6 +179,34 @@
       margin-bottom: 8px;
     }
 
+    .audio-file-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .audio-file-actions button {
+      flex: 1;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .save-button {
+      background: #0e639c;
+    }
+
+    .save-button:hover {
+      background: #1177bb;
+    }
+
+    .delete-button {
+      background: #c72e2e;
+    }
+
+    .delete-button:hover {
+      background: #e03e3e;
+    }
+
     audio {
       width: 100%;
       height: 32px;
@@ -265,9 +293,6 @@
   </div>
 
   <div class="header">
-    <button id="openFile">ファイルを開く</button>
-    <button id="saveFile">Save</button>
-    <button id="saveAsFile">Save As...</button>
     <button id="mainTextButton">main_text抽出</button>
     <button id="kanjiButton">漢字</button>
     <button id="furiganaButton">ふりがな</button>
@@ -302,7 +327,6 @@
       </div>
 
       <div class="section">
-        <button id="playButton" class="convert-button">▶ 選択範囲を再生</button>
         <button id="convertButton" class="convert-button">選択範囲を音声に変換</button>
         <button id="cancelButton" class="convert-button cancel-button" style="display: none;">キャンセル</button>
 
@@ -315,7 +339,7 @@
       </div>
 
       <div class="section" id="audioSection" style="display: none;">
-        <h3>音声再生</h3>
+        <h3>生成された音声（一時）</h3>
         <div id="audioFiles"></div>
       </div>
     </div>

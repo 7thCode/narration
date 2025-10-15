@@ -33,5 +33,9 @@ contextBridge.exposeInMainWorld('electron', {
   go: {
     convertToHiragana: (text: string) => ipcRenderer.invoke('go:convertToHiragana', text),
   },
+  fileManager: {
+    saveTempFile: (tempFilePath: string) => ipcRenderer.invoke('file-manager:save-temp-file', tempFilePath),
+    deleteTempFile: (tempFilePath: string) => ipcRenderer.invoke('file-manager:delete-temp-file', tempFilePath),
+  },
 });
 

@@ -16,19 +16,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   initApp();
 
   // メニューイベントリスナー（initAppの外で定義）
-  (window as any).electron.ipcRenderer.on('menu:file:open', () => {
-    const openFileBtn = document.getElementById('openFile') as HTMLButtonElement;
-    openFileBtn?.click();
+  (window as any).electron.ipcRenderer.on('menu:file:open', async () => {
+    const editor = document.getElementById('editor') as HTMLTextAreaElement;
+    const result = await (window as any).electron.file.open();
+    if (result.success) {
+      editor.value = result.content;
+      const statusDiv = document.getElementById('status') as HTMLDivElement;
+      statusDiv.textContent = `ファイルを開きました: ${result.filePath}`;
+      statusDiv.className = 'status success';
+      statusDiv.style.display = 'block';
+    }
   });
 
-  (window as any).electron.ipcRenderer.on('menu:file:save', () => {
-    const saveFileBtn = document.getElementById('saveFile') as HTMLButtonElement;
-    saveFileBtn?.click();
+  (window as any).electron.ipcRenderer.on('menu:file:save', async () => {
+    const editor = document.getElementById('editor') as HTMLTextAreaElement;
+    const result = await (window as any).electron.file.save(editor.value);
+    if (result.success) {
+      const statusDiv = document.getElementById('status') as HTMLDivElement;
+      statusDiv.textContent = `ファイルを保存しました: ${result.filePath}`;
+      statusDiv.className = 'status success';
+      statusDiv.style.display = 'block';
+    }
   });
 
-  (window as any).electron.ipcRenderer.on('menu:file:saveas', () => {
-    const saveAsFileBtn = document.getElementById('saveAsFile') as HTMLButtonElement;
-    saveAsFileBtn?.click();
+  (window as any).electron.ipcRenderer.on('menu:file:saveas', async () => {
+    const editor = document.getElementById('editor') as HTMLTextAreaElement;
+    const result = await (window as any).electron.file.saveAs(editor.value);
+    if (result.success) {
+      const statusDiv = document.getElementById('status') as HTMLDivElement;
+      statusDiv.textContent = `ファイルを保存しました: ${result.filePath}`;
+      statusDiv.className = 'status success';
+      statusDiv.style.display = 'block';
+    }
   });
 
   (window as any).electron.ipcRenderer.on('menu:tools:maintext', () => {
@@ -121,16 +140,12 @@ function initApp() {
 
   // DOM要素取得
   const editor = document.getElementById('editor') as HTMLTextAreaElement;
-  const openFileBtn = document.getElementById('openFile') as HTMLButtonElement;
-  const saveFileBtn = document.getElementById('saveFile') as HTMLButtonElement;
-  const saveAsFileBtn = document.getElementById('saveAsFile') as HTMLButtonElement;
   const kanjiButton = document.getElementById('kanjiButton') as HTMLButtonElement;
   const furiganaButton = document.getElementById('furiganaButton') as HTMLButtonElement;
   const brConvertButton = document.getElementById('brConvertButton') as HTMLButtonElement;
   const rubyConvertButton = document.getElementById('rubyConvertButton') as HTMLButtonElement;
   const hiraganaButton = document.getElementById('hiraganaButton') as HTMLButtonElement;
   const mainTextButton = document.getElementById('mainTextButton') as HTMLButtonElement;
-  const playButton = document.getElementById('playButton') as HTMLButtonElement;
   const settingsButton = document.getElementById('settingsButton') as HTMLButtonElement;
   const apiKeyInput = document.getElementById('apiKeyInput') as HTMLInputElement;
   const saveSettingsBtn = document.getElementById('saveSettings') as HTMLButtonElement;
@@ -146,7 +161,7 @@ function initApp() {
   const audioSection = document.getElementById('audioSection') as HTMLDivElement;
   const audioFiles = document.getElementById('audioFiles') as HTMLDivElement;
 
-  console.log('Elements:', { editor, openFileBtn, saveFileBtn });
+  console.log('Elements:', { editor });
 
   // 設定モーダル
   settingsButton.addEventListener('click', async () => {
@@ -515,102 +530,6 @@ function initApp() {
     }
   });
 
-  // 音声再生（選択範囲）
-  let currentAudio: HTMLAudioElement | null = null;
-  
-  playButton.addEventListener('click', async () => {
-    const selectedText = editor.value.substring(
-      editor.selectionStart,
-      editor.selectionEnd
-    );
-
-    if (!selectedText) {
-      showStatus('❌ テキストを選択してください', 'error');
-      return;
-    }
-
-    // 既存の音声を停止
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio = null;
-    }
-
-    showStatus('🎵 音声を生成中...', 'success');
-    playButton.disabled = true;
-
-    try {
-      // 使用量をカウント
-      const charCount = selectedText.length;
-      
-      // 1チャンクのみ生成（再生用）
-      const result = await (window as any).electron.tts.convert({
-        text: selectedText,
-        voice: voiceSelect.value,
-        instructions: instructions.value,
-        startLine: 1,
-      });
-
-      if (result.success && result.files.length > 0) {
-        // 使用量を更新
-        updateUsageStats(charCount, 'tts-1');
-        // 最初のファイルを再生
-        const audioFile = result.files[0];
-        currentAudio = new Audio(audioFile);
-        
-        currentAudio.onended = () => {
-          showStatus('✅ 再生完了', 'success');
-          playButton.disabled = false;
-        };
-
-        currentAudio.onerror = () => {
-          showStatus('❌ 再生エラー', 'error');
-          playButton.disabled = false;
-        };
-
-        await currentAudio.play();
-        showStatus('🎵 再生中...', 'success');
-      } else {
-        showStatus(`❌ エラー: ${result.error}`, 'error');
-        playButton.disabled = false;
-      }
-    } catch (error: any) {
-      showStatus(`❌ エラー: ${error.message}`, 'error');
-      playButton.disabled = false;
-    }
-  });
-
-  // ファイル操作
-  openFileBtn.addEventListener('click', async () => {
-    console.log('Open file clicked');
-    const result = await (window as any).electron.file.open();
-    if (result.success) {
-      editor.value = result.content;
-      showStatus(`ファイルを開きました: ${result.filePath}`, 'success');
-    } else if (result.error !== 'Cancelled') {
-      showStatus(`エラー: ${result.error}`, 'error');
-    }
-  });
-
-  saveFileBtn.addEventListener('click', async () => {
-    console.log('Save file clicked');
-    const result = await (window as any).electron.file.save(editor.value);
-    if (result.success) {
-      showStatus(`ファイルを保存しました: ${result.filePath}`, 'success');
-    } else if (result.error !== 'Cancelled') {
-      showStatus(`エラー: ${result.error}`, 'error');
-    }
-  });
-
-  saveAsFileBtn.addEventListener('click', async () => {
-    console.log('Save As file clicked');
-    const result = await (window as any).electron.file.saveAs(editor.value);
-    if (result.success) {
-      showStatus(`ファイルを保存しました: ${result.filePath}`, 'success');
-    } else if (result.error !== 'Cancelled') {
-      showStatus(`エラー: ${result.error}`, 'error');
-    }
-  });
-
   // TTS変換
   convertButton.addEventListener('click', async () => {
     console.log('Convert clicked');
@@ -694,9 +613,12 @@ function initApp() {
     audioFiles.innerHTML = '';
     audioSection.style.display = 'block';
 
-    files.forEach((filename) => {
+    files.forEach((filepath) => {
       const container = document.createElement('div');
       container.className = 'audio-file';
+
+      // ファイル名のみ抽出
+      const filename = filepath.split('/').pop() || filepath;
 
       const nameDiv = document.createElement('div');
       nameDiv.className = 'audio-file-name';
@@ -704,10 +626,58 @@ function initApp() {
 
       const audio = document.createElement('audio');
       audio.controls = true;
-      audio.src = filename;
+      audio.src = filepath;
+
+      // ボタンコンテナ
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'audio-file-actions';
+
+      // 保存ボタン
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = '💾 保存';
+      saveBtn.className = 'save-button';
+      saveBtn.onclick = async () => {
+        const result = await (window as any).electron.fileManager.saveTempFile(filepath);
+        if (result.success) {
+          showStatus(`✅ ${result.filename} を保存しました`, 'success');
+          // 一時ファイルを削除
+          await (window as any).electron.fileManager.deleteTempFile(filepath);
+          // UIから削除
+          container.remove();
+          // すべての音声がなくなったらセクションを非表示
+          if (audioFiles.children.length === 0) {
+            audioSection.style.display = 'none';
+          }
+        } else {
+          showStatus(`❌ 保存エラー: ${result.error}`, 'error');
+        }
+      };
+
+      // 削除ボタン
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '🗑️ 削除';
+      deleteBtn.className = 'delete-button';
+      deleteBtn.onclick = async () => {
+        const result = await (window as any).electron.fileManager.deleteTempFile(filepath);
+        if (result.success) {
+          showStatus(`🗑️ ${filename} を削除しました`, 'success');
+          // UIから削除
+          container.remove();
+          // すべての音声がなくなったらセクションを非表示
+          if (audioFiles.children.length === 0) {
+            audioSection.style.display = 'none';
+          }
+        } else {
+          showStatus(`❌ 削除エラー: ${result.error}`, 'error');
+        }
+      };
+
+      actionsDiv.appendChild(saveBtn);
+      actionsDiv.appendChild(deleteBtn);
 
       container.appendChild(nameDiv);
       container.appendChild(audio);
+      container.appendChild(actionsDiv);
       audioFiles.appendChild(container);
     });
   }
