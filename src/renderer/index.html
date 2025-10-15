@@ -378,6 +378,44 @@
       padding: 40px 20px;
       font-size: 13px;
     }
+
+    /* Tab Styles */
+    .tab-header {
+      display: flex;
+      border-bottom: 1px solid #3c3c3c;
+      margin-bottom: 16px;
+    }
+
+    .tab-button {
+      flex: 1;
+      background: transparent;
+      color: #888;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: none;
+    }
+
+    .tab-button:hover {
+      background: #2d2d2d;
+      color: #d4d4d4;
+    }
+
+    .tab-button.active {
+      color: #fff;
+      border-bottom-color: #0e639c;
+      background: transparent;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -453,70 +491,76 @@
     </div>
 
     <div class="sidebar">
-      <div class="section">
-        <h3 style="font-size: 24px;margin-bottom: 16px; color: #cccccc;">プロジェクト設定</h3>
-        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-          <button id="loadProjectButton" style="flex: 1; font-size: 12px;">読込</button>
-          <button id="saveProjectButton" style="flex: 1; font-size: 12px;">保存</button>
+      <!-- Tab Header -->
+      <div class="tab-header">
+        <button id="projectTab" class="tab-button active">プロジェクト設定</button>
+        <button id="dictionaryTab" class="tab-button">辞書</button>
+      </div>
+
+      <!-- Project Settings Tab Content -->
+      <div id="projectTabContent" class="tab-content active">
+        <div class="section">
+          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <button id="loadProjectButton" style="flex: 1; font-size: 12px;">読込</button>
+            <button id="saveProjectButton" style="flex: 1; font-size: 12px;">保存</button>
+          </div>
+
+          <label>Voice</label>
+          <select id="voiceSelect">
+            <option value="alloy">Alloy</option>
+            <option value="echo">Echo</option>
+            <option value="fable">Fable</option>
+            <option value="onyx">Onyx</option>
+            <option value="nova">Nova</option>
+            <option value="shimmer">Shimmer</option>
+            <option value="coral">Coral</option>
+            <option value="sage" selected>Sage</option>
+          </select>
+
+          <label style="margin-top: 12px;">Instructions (音声のトーン・スタイル)</label>
+          <textarea id="instructions" class="instructions" placeholder="例: Friendly, clear, and reassuring tone..."></textarea>
         </div>
 
-        <label>Voice</label>
-        <select id="voiceSelect">
-          <option value="alloy">Alloy</option>
-          <option value="echo">Echo</option>
-          <option value="fable">Fable</option>
-          <option value="onyx">Onyx</option>
-          <option value="nova">Nova</option>
-          <option value="shimmer">Shimmer</option>
-          <option value="coral">Coral</option>
-          <option value="sage" selected>Sage</option>
-        </select>
+        <div class="section">
+          <button id="convertButton" class="convert-button">選択範囲を音声に変換</button>
+          <button id="cancelButton" class="convert-button cancel-button" style="display: none;">キャンセル</button>
 
-        <label style="margin-top: 12px;">Instructions (音声のトーン・スタイル)</label>
-        <textarea id="instructions" class="instructions" placeholder="例: Friendly, clear, and reassuring tone..."></textarea>
-      </div>
+          <div id="progressContainer" class="progress-container" style="display: none;">
+            <progress id="progressBar" value="0" max="100"></progress>
+            <div id="progressText" class="progress-text"></div>
+          </div>
 
-      <div class="section">
-        <button id="convertButton" class="convert-button">選択範囲を音声に変換</button>
-        <button id="cancelButton" class="convert-button cancel-button" style="display: none;">キャンセル</button>
-
-        <div id="progressContainer" class="progress-container" style="display: none;">
-          <progress id="progressBar" value="0" max="100"></progress>
-          <div id="progressText" class="progress-text"></div>
+          <div id="status" class="status" style="display: none;"></div>
         </div>
 
-        <div id="status" class="status" style="display: none;"></div>
-      </div>
-
-      <div class="section" id="audioSection" style="display: none;">
-        <h3>生成された音声（一時）</h3>
-        <div id="audioFiles"></div>
-      </div>
-    </div>
-
-    <!-- Dictionary Panel -->
-    <div class="dictionary-panel">
-      <h3 style="font-size: 20px; margin-bottom: 16px; color: #cccccc;">📖 辞書</h3>
-
-      <div class="dictionary-add" id="addEntryForm" style="display: none;">
-        <input type="text" id="newEntryFrom" placeholder="元の文字列">
-        <input type="text" id="newEntryTo" placeholder="置換後の文字列">
-        <div style="display: flex; gap: 4px;">
-          <button id="confirmAddButton" style="flex: 1; font-size: 12px;">追加</button>
-          <button id="cancelAddButton" style="flex: 1; font-size: 12px; background: #555;">キャンセル</button>
+        <div class="section" id="audioSection" style="display: none;">
+          <h3>生成された音声（一時）</h3>
+          <div id="audioFiles"></div>
         </div>
       </div>
 
-      <div class="dictionary-entries" id="dictionaryEntries">
-        <div class="dictionary-empty">
-          辞書が空です<br>
-          「+ 新規追加」または「読込」から始めましょう
+      <!-- Dictionary Tab Content -->
+      <div id="dictionaryTabContent" class="tab-content">
+        <div class="dictionary-add" id="addEntryForm" style="display: none;">
+          <input type="text" id="newEntryFrom" placeholder="元の文字列">
+          <input type="text" id="newEntryTo" placeholder="置換後の文字列">
+          <div style="display: flex; gap: 4px;">
+            <button id="confirmAddButton" style="flex: 1; font-size: 12px;">追加</button>
+            <button id="cancelAddButton" style="flex: 1; font-size: 12px; background: #555;">キャンセル</button>
+          </div>
         </div>
-      </div>
 
-      <button id="addEntryButton" style="width: 100%; margin-bottom: 16px; font-size: 13px;">+ 新規追加</button>
-      <button id="applyDictionaryButton" class="dictionary-apply">🔄 辞書適用</button>
-      <div id="dictionaryStatus" class="status" style="display: none; margin-top: 12px;"></div>
+        <div class="dictionary-entries" id="dictionaryEntries">
+          <div class="dictionary-empty">
+            辞書が空です<br>
+            「+ 新規追加」または「読込」から始めましょう
+          </div>
+        </div>
+
+        <button id="addEntryButton" style="width: 100%; margin-bottom: 16px; font-size: 13px;">+ 新規追加</button>
+        <button id="applyDictionaryButton" class="dictionary-apply">🔄 辞書適用</button>
+        <div id="dictionaryStatus" class="status" style="display: none; margin-top: 12px;"></div>
+      </div>
     </div>
   </div>
 

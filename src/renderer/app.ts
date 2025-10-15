@@ -145,6 +145,33 @@ function updateUsageStats(charCount: number, model: string = 'tts-1') {
 function initApp() {
   console.log('initApp called');
 
+  // ========================
+  // Tab Switching Logic
+  // ========================
+
+  const projectTab = document.getElementById('projectTab') as HTMLButtonElement;
+  const dictionaryTab = document.getElementById('dictionaryTab') as HTMLButtonElement;
+  const projectTabContent = document.getElementById('projectTabContent') as HTMLDivElement;
+  const dictionaryTabContent = document.getElementById('dictionaryTabContent') as HTMLDivElement;
+
+  function switchTab(tab: 'project' | 'dictionary') {
+    if (tab === 'project') {
+      projectTab.classList.add('active');
+      dictionaryTab.classList.remove('active');
+      projectTabContent.classList.add('active');
+      dictionaryTabContent.classList.remove('active');
+    } else {
+      projectTab.classList.remove('active');
+      dictionaryTab.classList.add('active');
+      projectTabContent.classList.remove('active');
+      dictionaryTabContent.classList.add('active');
+    }
+  }
+
+  // Tab click handlers
+  projectTab.onclick = () => switchTab('project');
+  dictionaryTab.onclick = () => switchTab('dictionary');
+
   // DOM要素取得
   const editor = document.getElementById('editor') as HTMLTextAreaElement;
   const kanjiButton = document.getElementById('kanjiButton') as HTMLButtonElement;
