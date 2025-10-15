@@ -491,6 +491,12 @@
     </div>
 
     <div class="sidebar">
+      <!-- Load/Save Buttons -->
+      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <button id="loadProjectButton" style="flex: 1; font-size: 12px;">読込</button>
+        <button id="saveProjectButton" style="flex: 1; font-size: 12px;">保存</button>
+      </div>
+
       <!-- Tab Header -->
       <div class="tab-header">
         <button id="projectTab" class="tab-button active">プロジェクト設定</button>
@@ -500,11 +506,6 @@
       <!-- Project Settings Tab Content -->
       <div id="projectTabContent" class="tab-content active">
         <div class="section">
-          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-            <button id="loadProjectButton" style="flex: 1; font-size: 12px;">読込</button>
-            <button id="saveProjectButton" style="flex: 1; font-size: 12px;">保存</button>
-          </div>
-
           <label>Voice</label>
           <select id="voiceSelect">
             <option value="alloy">Alloy</option>
