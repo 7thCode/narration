@@ -1,5 +1,12 @@
 /// <reference lib="dom" />
 
+import {
+  Dictionary,
+  DictionaryEntry,
+  applyDictionary,
+  countReplacements
+} from './dictionary.js';
+
 console.log('app.ts loaded');
 console.log('window.electron:', (window as any).electron);
 
@@ -681,5 +688,249 @@ function initApp() {
       audioFiles.appendChild(container);
     });
   }
+
+  // ========================
+  // Dictionary Management
+  // ========================
+
+  let currentDictionary: Dictionary = [];
+  let editingIndex: number | null = null;
+
+  // DOM elements
+  const loadProjectButton = document.getElementById('loadProjectButton') as HTMLButtonElement;
+  const saveProjectButton = document.getElementById('saveProjectButton') as HTMLButtonElement;
+  const addEntryButton = document.getElementById('addEntryButton') as HTMLButtonElement;
+  const addEntryForm = document.getElementById('addEntryForm') as HTMLDivElement;
+  const newEntryFrom = document.getElementById('newEntryFrom') as HTMLInputElement;
+  const newEntryTo = document.getElementById('newEntryTo') as HTMLInputElement;
+  const confirmAddButton = document.getElementById('confirmAddButton') as HTMLButtonElement;
+  const cancelAddButton = document.getElementById('cancelAddButton') as HTMLButtonElement;
+  const dictionaryEntries = document.getElementById('dictionaryEntries') as HTMLDivElement;
+  const applyDictionaryButton = document.getElementById('applyDictionaryButton') as HTMLButtonElement;
+  const dictionaryStatus = document.getElementById('dictionaryStatus') as HTMLDivElement;
+
+  // Show dictionary status message
+  function showDictionaryStatus(message: string, type: 'success' | 'error') {
+    dictionaryStatus.textContent = message;
+    dictionaryStatus.className = `status ${type}`;
+    dictionaryStatus.style.display = 'block';
+    setTimeout(() => {
+      dictionaryStatus.style.display = 'none';
+    }, 3000);
+  }
+
+  // Render dictionary entries
+  function renderDictionary() {
+    dictionaryEntries.innerHTML = '';
+
+    if (currentDictionary.length === 0) {
+      dictionaryEntries.innerHTML = `
+        <div class="dictionary-empty">
+          辞書が空です<br>
+          「+ 新規追加」または「読込」から始めましょう
+        </div>
+      `;
+      return;
+    }
+
+    currentDictionary.forEach((entry, index) => {
+      const entryDiv = document.createElement('div');
+      entryDiv.className = 'dictionary-entry';
+
+      if (editingIndex === index) {
+        // Edit mode
+        entryDiv.classList.add('editing');
+        entryDiv.innerHTML = `
+          <div class="entry-edit-form">
+            <input type="text" class="edit-from" value="${escapeHtml(entry.from)}" placeholder="元の文字列">
+            <input type="text" class="edit-to" value="${escapeHtml(entry.to)}" placeholder="置換後の文字列">
+            <div class="entry-edit-actions">
+              <button class="save-edit-btn">保存</button>
+              <button class="cancel-edit-btn" style="background: #555;">キャンセル</button>
+            </div>
+          </div>
+        `;
+
+        const editFromInput = entryDiv.querySelector('.edit-from') as HTMLInputElement;
+        const editToInput = entryDiv.querySelector('.edit-to') as HTMLInputElement;
+        const saveEditBtn = entryDiv.querySelector('.save-edit-btn') as HTMLButtonElement;
+        const cancelEditBtn = entryDiv.querySelector('.cancel-edit-btn') as HTMLButtonElement;
+
+        saveEditBtn.onclick = () => {
+          const newFrom = editFromInput.value.trim();
+          const newTo = editToInput.value.trim();
+
+          if (!newFrom) {
+            showDictionaryStatus('元の文字列を入力してください', 'error');
+            return;
+          }
+
+          currentDictionary[index] = { from: newFrom, to: newTo };
+          editingIndex = null;
+          renderDictionary();
+          showDictionaryStatus('エントリを更新しました', 'success');
+        };
+
+        cancelEditBtn.onclick = () => {
+          editingIndex = null;
+          renderDictionary();
+        };
+
+        // Enter to save
+        editFromInput.onkeydown = editToInput.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            saveEditBtn.click();
+          } else if (e.key === 'Escape') {
+            cancelEditBtn.click();
+          }
+        };
+
+        editFromInput.focus();
+      } else {
+        // Display mode
+        entryDiv.innerHTML = `
+          <div class="entry-display">
+            <div class="entry-text">
+              <span class="entry-from">${escapeHtml(entry.from)}</span>
+              <span class="entry-arrow">→</span>
+              <span class="entry-to">${escapeHtml(entry.to)}</span>
+            </div>
+            <div class="entry-actions">
+              <button class="edit-btn" style="background: #0e639c;">編集</button>
+              <button class="delete-btn" style="background: #c72e2e;">削除</button>
+            </div>
+          </div>
+        `;
+
+        const editBtn = entryDiv.querySelector('.edit-btn') as HTMLButtonElement;
+        const deleteBtn = entryDiv.querySelector('.delete-btn') as HTMLButtonElement;
+
+        editBtn.onclick = () => {
+          editingIndex = index;
+          renderDictionary();
+        };
+
+        deleteBtn.onclick = () => {
+          currentDictionary.splice(index, 1);
+          renderDictionary();
+          showDictionaryStatus('エントリを削除しました', 'success');
+        };
+      }
+
+      dictionaryEntries.appendChild(entryDiv);
+    });
+  }
+
+  // Helper: Escape HTML
+  function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Show add entry form
+  addEntryButton.onclick = () => {
+    addEntryForm.style.display = 'block';
+    newEntryFrom.value = '';
+    newEntryTo.value = '';
+    newEntryFrom.focus();
+  };
+
+  // Confirm add entry
+  confirmAddButton.onclick = () => {
+    const from = newEntryFrom.value.trim();
+    const to = newEntryTo.value.trim();
+
+    if (!from) {
+      showDictionaryStatus('元の文字列を入力してください', 'error');
+      return;
+    }
+
+    currentDictionary.push({ from, to });
+    renderDictionary();
+    addEntryForm.style.display = 'none';
+    showDictionaryStatus('エントリを追加しました', 'success');
+  };
+
+  // Cancel add entry
+  cancelAddButton.onclick = () => {
+    addEntryForm.style.display = 'none';
+  };
+
+  // Enter to add
+  newEntryFrom.onkeydown = newEntryTo.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      confirmAddButton.click();
+    } else if (e.key === 'Escape') {
+      cancelAddButton.click();
+    }
+  };
+
+  // Load project settings
+  loadProjectButton.onclick = async () => {
+    try {
+      const result = await (window as any).electron.project.load();
+
+      if (result.success && result.settings) {
+        // Update UI with loaded settings
+        voiceSelect.value = result.settings.voice;
+        instructions.value = result.settings.instructions;
+        currentDictionary = result.settings.dictionary;
+
+        renderDictionary();
+        showStatus(result.message, 'success');
+      } else if (!result.success && result.message !== 'キャンセルされました') {
+        showStatus(result.message, 'error');
+      }
+    } catch (error: any) {
+      showStatus(`読み込みエラー: ${error.message}`, 'error');
+    }
+  };
+
+  // Save project settings
+  saveProjectButton.onclick = async () => {
+    try {
+      const settings = {
+        voice: voiceSelect.value,
+        instructions: instructions.value,
+        dictionary: currentDictionary
+      };
+
+      const result = await (window as any).electron.project.save(settings);
+
+      if (result.success) {
+        showStatus(result.message, 'success');
+      } else if (result.message !== 'キャンセルされました') {
+        showStatus(result.message, 'error');
+      }
+    } catch (error: any) {
+      showStatus(`保存エラー: ${error.message}`, 'error');
+    }
+  };
+
+  // Apply dictionary to editor
+  applyDictionaryButton.onclick = () => {
+    if (currentDictionary.length === 0) {
+      showDictionaryStatus('辞書が空です', 'error');
+      return;
+    }
+
+    const originalText = editor.value;
+    const replacementCount = countReplacements(originalText, currentDictionary);
+
+    if (replacementCount === 0) {
+      showDictionaryStatus('置換対象が見つかりませんでした', 'error');
+      return;
+    }
+
+    const newText = applyDictionary(originalText, currentDictionary);
+    editor.value = newText;
+    showDictionaryStatus(`✅ ${replacementCount}箇所を置換しました`, 'success');
+  };
+
+  // Initial render
+  renderDictionary();
 
 }

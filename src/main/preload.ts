@@ -37,5 +37,10 @@ contextBridge.exposeInMainWorld('electron', {
     saveTempFile: (tempFilePath: string) => ipcRenderer.invoke('file-manager:save-temp-file', tempFilePath),
     deleteTempFile: (tempFilePath: string) => ipcRenderer.invoke('file-manager:delete-temp-file', tempFilePath),
   },
+  project: {
+    save: (settings: { voice: string; instructions: string; dictionary: Array<{ from: string; to: string }> }) =>
+      ipcRenderer.invoke('project:save', settings),
+    load: () => ipcRenderer.invoke('project:load'),
+  },
 });
 

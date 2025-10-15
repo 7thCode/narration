@@ -58,3 +58,7 @@ import './ipc/tts.js';
 import './ipc/settings.js';
 import './ipc/go-converter.js';
 import './ipc/file-manager.js';
+import { registerDictionaryHandlers } from './ipc/dictionary.js';
+
+// Register dictionary handlers
+registerDictionaryHandlers();
