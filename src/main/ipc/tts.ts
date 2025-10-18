@@ -4,6 +4,7 @@ import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { splitText } from '../utils/textChunker.js';
+import { cleanMarkdown } from '../utils/markdownCleaner.js';
 import { currentFilePath } from './file.js';
 import { getApiKey } from './settings.js';
 import { getTempDir } from './file-manager.js';
@@ -30,8 +31,12 @@ ipcMain.handle('tts:convert', async (event, params: TTSParams) => {
     // OpenAIクライアント作成
     const openai = new OpenAI({ apiKey });
 
+    // Markdownファイルの場合は記号を削除
+    const isMarkdownFile = currentFilePath?.endsWith('.md') || false;
+    const processedText = isMarkdownFile ? cleanMarkdown(params.text) : params.text;
+
     // テキストを1024文字ごとに分割
-    const chunks = splitText(params.text, 1024);
+    const chunks = splitText(processedText, 1024);
     const generatedFiles: string[] = [];
 
     // 保存先ディレクトリの決定（一時ディレクトリ）
