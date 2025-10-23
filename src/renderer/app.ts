@@ -87,6 +87,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     hiraganaButton?.click();
   });
 
+  (window as any).electron.ipcRenderer.on('menu:tools:wikipedia', () => {
+    const wikipediaButton = document.getElementById('wikipediaButton') as HTMLButtonElement;
+    wikipediaButton?.click();
+  });
+
   (window as any).electron.ipcRenderer.on('menu:edit:find', () => {
     showSearchReplaceModal();
   });
@@ -179,6 +184,7 @@ function initApp() {
   const brConvertButton = document.getElementById('brConvertButton') as HTMLButtonElement;
   const rubyConvertButton = document.getElementById('rubyConvertButton') as HTMLButtonElement;
   const hiraganaButton = document.getElementById('hiraganaButton') as HTMLButtonElement;
+  const wikipediaButton = document.getElementById('wikipediaButton') as HTMLButtonElement;
   const mainTextButton = document.getElementById('mainTextButton') as HTMLButtonElement;
   const settingsButton = document.getElementById('settingsButton') as HTMLButtonElement;
   const apiKeyInput = document.getElementById('apiKeyInput') as HTMLInputElement;
@@ -538,6 +544,15 @@ function initApp() {
     } catch (error: any) {
       showStatus(`❌ 変換エラー: ${error.message}`, 'error');
     }
+  });
+
+  // Wikipedia（全角括弧削除）
+  wikipediaButton.addEventListener('click', () => {
+    const text = editor.value;
+    // 全角括弧（）とその中身を削除
+    const converted = text.replace(/（.*?）/g, '');
+    editor.value = converted;
+    showStatus('✅ Wikipedia形式に変換しました（括弧削除）', 'success');
   });
 
   // main_text抽出
