@@ -146,6 +146,14 @@
       resize: none;
       outline: none;
       border-radius: var(--md-shape-small);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Drag and Drop Visual Feedback */
+    textarea.drag-over {
+      border: 2px dashed var(--md-primary);
+      background: rgba(25, 118, 210, 0.1);
+      box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.2);
     }
 
     /* Sidebar - Material Surface */

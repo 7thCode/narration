@@ -46,6 +46,12 @@ ipcMain.handle('file:saveAs', async (_event, content: string) => {
   return handleSaveAs(content);
 });
 
+// 現在のファイルパスを設定（ドロップ時など）
+ipcMain.handle('file:setCurrentPath', async (_event, filePath: string | null) => {
+  currentFilePath = filePath;
+  return { success: true };
+});
+
 async function handleSaveAs(content: string) {
   const result = await dialog.showSaveDialog({
     filters: [

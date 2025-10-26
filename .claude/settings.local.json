@@ -20,7 +20,12 @@
       "Bash(./kanji_converter)",
       "Bash(chmod:*)",
       "Bash(./scripts/build-go.sh:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm run build:renderer:*)",
+      "Bash(npm test)",
+      "Bash(npm run analyze:*)",
+      "Bash(npm run sentiment:*)",
+      "Bash(npm run integration:*)"
     ],
     "deny": [],
     "ask": []

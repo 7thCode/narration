@@ -10,9 +10,9 @@ import {
 console.log('app.ts loaded');
 console.log('window.electron:', (window as any).electron);
 
-// DOMContentLoaded後に実行
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('DOMContentLoaded');
+// DOMContentLoaded後に実行 (または既にロード済みの場合は即実行)
+async function startApp() {
+  console.log('Starting app...');
 
   // API Key確認
   const hasApiKey = await (window as any).electron.settings.hasApiKey();
@@ -95,7 +95,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   (window as any).electron.ipcRenderer.on('menu:edit:find', () => {
     showSearchReplaceModal();
   });
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
+}
 
 function showSettingsModal() {
   const modal = document.getElementById('settingsModal') as HTMLDivElement;
@@ -180,6 +186,57 @@ function initApp() {
   // DOM要素取得
   const editor = document.getElementById('editor') as HTMLTextAreaElement;
   const kanjiButton = document.getElementById('kanjiButton') as HTMLButtonElement;
+
+  // ========================
+  // Drag & Drop File Handling
+  // ========================
+
+  editor.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    editor.classList.add('drag-over');
+  });
+
+  editor.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    editor.classList.remove('drag-over');
+  });
+
+  editor.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    editor.classList.remove('drag-over');
+
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+
+    // テキストファイルかチェック
+    if (!file.type.match(/text.*/) && !file.name.match(/\.(txt|md|html|json|js|ts|css)$/i)) {
+      showStatus('テキストファイルをドロップしてください', 'error');
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      editor.value = text;
+
+      // Electronの場合、FileオブジェクトにpathプロパティがあればそれをcurrentFilePathに設定
+      const filePath = (file as any).path;
+      if (filePath) {
+        await (window as any).electron.file.setCurrentPath(filePath);
+        showStatus(`✅ ファイルを開きました: ${file.name}`, 'success');
+      } else {
+        // パスが取得できない場合はcurrentFilePathをクリア
+        await (window as any).electron.file.setCurrentPath(null);
+        showStatus(`✅ ファイルを開きました: ${file.name} (上書き保存不可)`, 'success');
+      }
+    } catch (error: any) {
+      showStatus(`❌ ファイル読み込みエラー: ${error.message}`, 'error');
+    }
+  });
   const furiganaButton = document.getElementById('furiganaButton') as HTMLButtonElement;
   const brConvertButton = document.getElementById('brConvertButton') as HTMLButtonElement;
   const rubyConvertButton = document.getElementById('rubyConvertButton') as HTMLButtonElement;
@@ -546,13 +603,38 @@ function initApp() {
     }
   });
 
-  // Wikipedia（全角括弧削除）
+  // Wikipedia整形（TTS用）
   wikipediaButton.addEventListener('click', () => {
-    const text = editor.value;
-    // 全角括弧（）とその中身を削除
-    const converted = text.replace(/（.*?）/g, '');
-    editor.value = converted;
-    showStatus('✅ Wikipedia形式に変換しました（括弧削除）', 'success');
+    let text = editor.value;
+
+    // 1. 参照番号削除: [1], [2], [123] など
+    text = text.replace(/\[\d+\]/g, '');
+
+    // 2. 編集タグ削除: [編集]
+    text = text.replace(/\[編集\]/g, '');
+
+    // 3. 出典タグ削除: [出典 1], [要出典], [出典]
+    text = text.replace(/\[出典\s*\d*\]/g, '');
+    text = text.replace(/\[要出典\]/g, '');
+
+    // 4. 注釈削除: [注 1], [注釈 1]
+    text = text.replace(/\[注\s*\d+\]/g, '');
+    text = text.replace(/\[注釈\s*\d+\]/g, '');
+
+    // 5. 全角括弧（）とその中身を削除
+    text = text.replace(/（.*?）/g, '');
+
+    // 6. 句点（。）の後に改行を挿入（既に改行がある場合は追加しない）
+    text = text.replace(/。(?!\n)/g, '。\n');
+
+    // 7. 連続する改行を2つに正規化（3つ以上の改行 → 2つ）
+    text = text.replace(/\n{3,}/g, '\n\n');
+
+    // 8. 先頭・末尾の空白を削除
+    text = text.trim();
+
+    editor.value = text;
+    showStatus('✅ Wikipedia整形完了（参照削除 + 句点改行）', 'success');
   });
 
   // main_text抽出

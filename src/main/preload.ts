@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('electron', {
     open: () => ipcRenderer.invoke('file:open'),
     save: (content: string) => ipcRenderer.invoke('file:save', content),
     saveAs: (content: string) => ipcRenderer.invoke('file:saveAs', content),
+    setCurrentPath: (filePath: string | null) => ipcRenderer.invoke('file:setCurrentPath', filePath),
   },
   tts: {
     convert: (params: {
